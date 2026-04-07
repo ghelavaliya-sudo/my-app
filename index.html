@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Tracker Pro - Advanced</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: '#4F46E5' }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .btn-press:active { transform: scale(0.95); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 text-white pb-28">
+
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute top-20 left-10 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative z-10 max-w-md mx-auto px-4 py-6">
+    <header class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">Daily Tracker</h1>
+        <p id="currentDate" class="text-indigo-300/70 text-sm mt-1 font-medium"></p>
+      </div>
+      <button onclick="toggleHistoryModal(true)" class="p-3 rounded-2xl glass-card hover:bg-white/20 transition-all shadow-lg flex items-center justify-center">
+        <span class="text-xl">📅</span>
+      </button>
+    </header>
+
+    <div id="tab-routine" class="tab-content active space-y-6">
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+         <div class="absolute -right-4 -top-4 text-6xl opacity-10">☀️</div>
+         <div class="flex items-center gap-3 mb-5">
+           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg text-2xl">⏰</div>
+           <div>
+             <h2 class="font-semibold text-lg">Wake Up Time</h2>
+             <p class="text-indigo-200/60 text-xs">Aapka uthne ka samay (1-12)</p>
+           </div>
+         </div>
+         <div class="grid grid-cols-6 gap-2" id="wakeUpGrid"></div>
+         <div id="wakeUpDisplay" class="mt-4 text-center hidden bg-black/20 py-2 rounded-xl border border-white/5">
+           <span class="text-amber-400 font-bold" id="wakeUpText"></span>
+         </div>
+       </div>
+
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+         <div class="absolute -right-4 -top-4 text-6xl opacity-10">📋</div>
+         <div class="flex items-center gap-3 mb-5">
+           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg text-2xl">✅</div>
+           <div>
+             <h2 class="font-semibold text-lg">Daily Tasks</h2>
+             <p id="taskProgress" class="text-indigo-200/60 text-xs">0/0 tasks completed</p>
+           </div>
+         </div>
+         <div class="flex gap-2 mb-4">
+           <input type="text" id="taskInput" placeholder="Naya task likhein..." class="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-emerald-400/50 transition-all shadow-inner" onkeypress="if(event.key === 'Enter') addTask()">
+           <button onclick="addTask()" class="px-5 py-3 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl font-bold hover:scale-105 transition-all shadow-lg text-white">+</button>
+         </div>
+         <div id="taskList" class="space-y-2 max-h-64 overflow-y-auto pr-1 hide-scrollbar"></div>
+       </div>
+    </div>
+
+    <div id="tab-health" class="tab-content space-y-6">
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+         <div class="absolute -right-4 -top-4 text-6xl opacity-10">👟</div>
+         <div class="flex items-center gap-3 mb-5">
+           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg text-2xl">👟</div>
+           <div>
+             <h2 class="font-semibold text-lg">Step Counter</h2>
+             <p id="stepStatus" class="text-indigo-200/60 text-xs">Tracking paused</p>
+           </div>
+         </div>
+         <div class="bg-black/20 rounded-2xl py-6 text-center mb-6 border border-white/5 shadow-inner">
+           <div id="stepCount" class="text-6xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">0</div>
+           <p class="text-white/40 text-sm mt-1 font-medium">Total Steps Today</p>
+         </div>
+         <div class="grid grid-cols-2 gap-3 mb-4">
+           <button id="btnToggleSteps" onclick="toggleStepCounter()" class="py-3 rounded-xl font-bold transition-all bg-gradient-to-r from-blue-500 to-cyan-500 hover:shadow-lg shadow-blue-500/30 text-white btn-press">▶ Start</button>
+           <button onclick="addSteps(0, true)" class="py-3 rounded-xl bg-white/10 text-white/70 font-semibold hover:bg-white/20 transition-all border border-white/10 btn-press">🔄 Reset</button>
+         </div>
+         <p class="text-xs text-white/30 text-center mb-2">Ya manually add karein:</p>
+         <div class="flex gap-2">
+           <button onclick="addSteps(100)" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 transition-all text-sm font-medium border border-white/5 btn-press">+100</button>
+           <button onclick="addSteps(500)" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 transition-all text-sm font-medium border border-white/5 btn-press">+500</button>
+           <button onclick="addSteps(1000)" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 transition-all text-sm font-medium border border-white/5 btn-press">+1000</button>
+         </div>
+       </div>
+
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+         <div class="absolute -right-4 -top-4 text-6xl opacity-10">🎯</div>
+         <div class="flex items-center gap-3 mb-5">
+           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center shadow-lg text-2xl">🎯</div>
+           <div>
+             <h2 class="font-semibold text-lg">Focus Timer</h2>
+             <p id="focusTotalText" class="text-indigo-200/60 text-xs">Today: 0 min focused</p>
+           </div>
+         </div>
+         <div class="bg-black/20 rounded-2xl py-6 text-center mb-6 border border-white/5 shadow-inner">
+           <div id="focusDisplay" class="text-6xl font-bold text-white/30 bg-clip-text tracking-wider">00:00</div>
+           <p id="focusSubtext" class="text-white/40 text-sm mt-1 font-medium">Enter minutes to start</p>
+         </div>
+         <div class="flex gap-3 mb-4">
+           <input type="number" id="focusInput" placeholder="Minutes..." class="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400/50 transition-all shadow-inner text-center text-lg">
+           <button id="btnFocus" onclick="toggleFocus()" class="px-8 py-3 rounded-xl font-bold bg-gradient-to-r from-violet-500 to-purple-500 hover:shadow-lg shadow-purple-500/30 transition-all text-white btn-press">Start</button>
+         </div>
+         <p class="text-xs text-white/30 text-center mb-2">Quick set:</p>
+         <div class="flex gap-2">
+           <button onclick="document.getElementById('focusInput').value=5" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 text-sm font-medium transition-all border border-white/5 btn-press">5m</button>
+           <button onclick="document.getElementById('focusInput').value=15" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 text-sm font-medium transition-all border border-white/5 btn-press">15m</button>
+           <button onclick="document.getElementById('focusInput').value=25" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 text-sm font-medium transition-all border border-white/5 btn-press">25m</button>
+           <button onclick="document.getElementById('focusInput').value=60" class="flex-1 py-2 rounded-lg bg-black/30 hover:bg-white/10 text-sm font-medium transition-all border border-white/5 btn-press">1hr</button>
+         </div>
+       </div>
+    </div>
+
+    <div id="tab-food" class="tab-content space-y-4">
+       
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+           <div class="absolute -right-4 -top-4 text-6xl opacity-10">🍎</div>
+           <div class="text-center mb-5 border-b border-white/10 pb-5">
+               <p class="text-indigo-200/60 text-xs uppercase tracking-widest font-bold mb-1">Total Calories Consumed</p>
+               <div id="totalCaloriesDisplay" class="text-6xl font-black bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent drop-shadow-sm">0</div>
+           </div>
+           
+           <p class="text-center text-xs text-white/50 mb-3 font-medium">Quick Add Calories to Meter:</p>
+           <div class="flex flex-wrap justify-center gap-2">
+               <button onclick="addManualCals(50)" class="px-4 py-2 rounded-xl bg-gradient-to-br from-rose-500/80 to-red-600/80 font-bold border border-rose-400/50 hover:scale-105 transition-all btn-press shadow-lg">+50</button>
+               <button onclick="addManualCals(100)" class="px-4 py-2 rounded-xl bg-gradient-to-br from-rose-500/80 to-red-600/80 font-bold border border-rose-400/50 hover:scale-105 transition-all btn-press shadow-lg">+100</button>
+               <button onclick="addManualCals(150)" class="px-4 py-2 rounded-xl bg-gradient-to-br from-rose-500/80 to-red-600/80 font-bold border border-rose-400/50 hover:scale-105 transition-all btn-press shadow-lg">+150</button>
+               <button onclick="addManualCals(200)" class="px-4 py-2 rounded-xl bg-gradient-to-br from-rose-500/80 to-red-600/80 font-bold border border-rose-400/50 hover:scale-105 transition-all btn-press shadow-lg">+200</button>
+               <button onclick="addManualCals(500)" class="px-4 py-2 rounded-xl bg-gradient-to-br from-rose-500/80 to-red-600/80 font-bold border border-rose-400/50 hover:scale-105 transition-all btn-press shadow-lg">+500</button>
+           </div>
+           <div class="mt-4 flex gap-2">
+               <input type="number" id="customCalInput" placeholder="Custom cals..." class="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-white/30 focus:outline-none text-center">
+               <button onclick="addCustomCals()" class="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all border border-white/10 btn-press">Add</button>
+               <button onclick="resetCals()" class="px-4 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-200 rounded-xl font-bold transition-all btn-press">Reset</button>
+           </div>
+       </div>
+
+       <div class="glass-card rounded-3xl p-5 shadow-2xl flex flex-col h-[450px]">
+         <div class="flex items-center gap-3 mb-4 shrink-0 border-b border-white/10 pb-4">
+           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center shadow-lg text-2xl">🤖</div>
+           <div>
+             <h2 class="font-semibold text-lg text-rose-100">AI Dietitian Chat</h2>
+             <p class="text-rose-200/50 text-[10px] uppercase tracking-wider font-bold">Ask calories, get info</p>
+           </div>
+           <button onclick="clearChat()" class="ml-auto text-xs font-semibold bg-white/5 hover:bg-red-500/80 px-3 py-2 rounded-lg transition-all border border-white/10">Clear</button>
+         </div>
+
+         <div id="chatMessages" class="flex-1 overflow-y-auto space-y-4 pr-2 hide-scrollbar mb-4 flex flex-col">
+            </div>
+
+         <div class="flex gap-2 shrink-0 bg-black/20 p-1.5 rounded-2xl border border-white/5">
+           <input type="text" id="chatInput" placeholder="Pucho aaj kya khaya..." class="flex-1 bg-transparent px-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+           <button id="btnSendChat" onclick="sendChatMessage()" class="w-10 h-10 bg-gradient-to-r from-rose-500 to-red-500 rounded-xl font-bold hover:scale-105 shadow-lg transition-all flex items-center justify-center btn-press">➤</button>
+         </div>
+       </div>
+    </div>
+
+    <div id="tab-analysis" class="tab-content space-y-6">
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+         <div class="absolute -right-4 -bottom-4 text-8xl opacity-5">📊</div>
+         <h2 class="font-bold text-xl mb-6 flex items-center gap-2 border-b border-white/10 pb-4">📊 Today's Deep Dive</h2>
+         <div class="grid grid-cols-2 gap-4">
+           <div class="bg-black/20 rounded-2xl p-5 text-center border border-amber-500/20 hover:border-amber-500/50 transition-all shadow-inner">
+             <span class="text-3xl mb-2 block drop-shadow-md">⏰</span>
+             <div id="sumWake" class="text-2xl font-black text-amber-400">--</div>
+             <p class="text-white/40 text-[11px] font-bold uppercase mt-1">Wake Up</p>
+           </div>
+           <div class="bg-black/20 rounded-2xl p-5 text-center border border-emerald-500/20 hover:border-emerald-500/50 transition-all shadow-inner">
+             <span class="text-3xl mb-2 block drop-shadow-md">✅</span>
+             <div id="sumTasks" class="text-2xl font-black text-emerald-400">0/0</div>
+             <p class="text-white/40 text-[11px] font-bold uppercase mt-1">Tasks Done</p>
+           </div>
+           <div class="bg-black/20 rounded-2xl p-5 text-center border border-blue-500/20 hover:border-blue-500/50 transition-all shadow-inner">
+             <span class="text-3xl mb-2 block drop-shadow-md">👟</span>
+             <div id="sumSteps" class="text-2xl font-black text-blue-400">0</div>
+             <p class="text-white/40 text-[11px] font-bold uppercase mt-1">Total Steps</p>
+           </div>
+           <div class="bg-black/20 rounded-2xl p-5 text-center border border-violet-500/20 hover:border-violet-500/50 transition-all shadow-inner">
+             <span class="text-3xl mb-2 block drop-shadow-md">🎯</span>
+             <div id="sumFocus" class="text-2xl font-black text-violet-400">0m</div>
+             <p class="text-white/40 text-[11px] font-bold uppercase mt-1">Focus Time</p>
+           </div>
+         </div>
+         <div class="mt-4 bg-gradient-to-br from-rose-500/10 to-red-500/10 rounded-2xl p-6 text-center border border-rose-500/30">
+           <span class="text-4xl mb-2 block drop-shadow-lg">🍎</span>
+           <div id="sumCals" class="text-4xl font-black text-rose-400">0</div>
+           <p class="text-rose-200/50 text-xs font-bold uppercase mt-2 tracking-widest">Total Calories</p>
+         </div>
+       </div>
+
+       <div class="glass-card rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+         <h3 class="font-bold text-lg mb-6 flex items-center gap-2">📈 Last 7 Days Trend</h3>
+         <div class="space-y-6" id="chartsContainer"></div>
+       </div>
+    </div>
+  </div>
+
+  <nav class="fixed bottom-0 left-0 right-0 z-40">
+    <div class="max-w-md mx-auto px-4 pb-6">
+      <div class="glass-card rounded-3xl p-2 shadow-2xl bg-slate-900/80">
+        <div class="flex items-center justify-around">
+          <button onclick="switchTab('routine')" id="nav-routine" class="nav-btn flex flex-col items-center py-3 px-5 rounded-2xl transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg scale-105 text-white">
+            <span class="text-2xl mb-1 drop-shadow-md">☀️</span><span class="text-[10px] uppercase font-bold tracking-wider">Routine</span>
+          </button>
+          <button onclick="switchTab('health')" id="nav-health" class="nav-btn flex flex-col items-center py-3 px-5 rounded-2xl transition-all duration-300 hover:bg-white/10 text-white/50 hover:text-white">
+            <span class="text-2xl mb-1 drop-shadow-md">💪</span><span class="text-[10px] uppercase font-bold tracking-wider">Health</span>
+          </button>
+          <button onclick="switchTab('food')" id="nav-food" class="nav-btn flex flex-col items-center py-3 px-5 rounded-2xl transition-all duration-300 hover:bg-white/10 text-white/50 hover:text-white">
+            <span class="text-2xl mb-1 drop-shadow-md">🍎</span><span class="text-[10px] uppercase font-bold tracking-wider">Food</span>
+          </button>
+          <button onclick="switchTab('analysis')" id="nav-analysis" class="nav-btn flex flex-col items-center py-3 px-5 rounded-2xl transition-all duration-300 hover:bg-white/10 text-white/50 hover:text-white">
+            <span class="text-2xl mb-1 drop-shadow-md">📊</span><span class="text-[10px] uppercase font-bold tracking-wider">Stats</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div id="historyModal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card rounded-3xl p-6 w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl border border-white/20">
+      <div class="flex items-center justify-between mb-6 shrink-0 border-b border-white/10 pb-4">
+        <h2 class="font-black text-xl flex items-center gap-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300">📅 30 Day History</h2>
+        <button onclick="toggleHistoryModal(false)" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all font-bold">✕</button>
+      </div>
+      <div id="historyList" class="space-y-3 overflow-y-auto pr-2 hide-scrollbar flex-1"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- State Management ---
+    const getTodayKey = () => new Date().toISOString().split('T')[0];
+    const getTimeString = () => new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    
+    let state = { 
+        date: getTodayKey(), 
+        wakeUpTime: null, 
+        tasks: [], 
+        steps: 0, 
+        focusMinutes: 0, 
+        totalCalories: 0,
+        chatHistory: [] 
+    };
+
+    function loadState() {
+      const saved = localStorage.getItem('dailyTracker_current');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === getTodayKey()) { 
+            state = parsed; 
+            if(!state.chatHistory) state.chatHistory = [];
+            return; 
+        }
+      }
+      state.date = getTodayKey();
+      saveState();
+    }
+
+    function saveState() {
+      localStorage.setItem('dailyTracker_current', JSON.stringify(state));
+      const history = JSON.parse(localStorage.getItem('dailyTracker_history') || '{}');
+      history[state.date] = state;
+      localStorage.setItem('dailyTracker_history', JSON.stringify(history));
+      renderAll();
+    }
+
+    // --- UI Navigation ---
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      
+      document.querySelectorAll('.nav-btn').forEach(el => {
+        el.className = "nav-btn flex flex-col items-center py-3 px-5 rounded-2xl transition-all duration-300 hover:bg-white/10 text-white/50 hover:text-white";
+      });
+      const activeBtn = document.getElementById('nav-' + tab);
+      activeBtn.className = "nav-btn flex flex-col items-center py-3 px-5 rounded-2xl transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg scale-105 text-white";
+    }
+
+    // --- Routine ---
+    function renderWakeUp() {
+      const grid = document.getElementById('wakeUpGrid');
+      grid.innerHTML = '';
+      for(let i=1; i<=12; i++) {
+        const btn = document.createElement('button');
+        btn.className = `py-3 rounded-xl font-black text-lg transition-all duration-300 ${state.wakeUpTime === i ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30 scale-105 border border-orange-400/50' : 'bg-black/30 text-white/70 hover:bg-white/10 border border-white/5 hover:scale-105 btn-press'}`;
+        btn.innerText = i;
+        btn.onclick = () => { state.wakeUpTime = i; saveState(); };
+        grid.appendChild(btn);
+      }
+      if (state.wakeUpTime) {
+        document.getElementById('wakeUpDisplay').classList.remove('hidden');
+        document.getElementById('wakeUpText').innerText = `Wake up at ${state.wakeUpTime}:00`;
+      } else {
+        document.getElementById('wakeUpDisplay').classList.add('hidden');
+      }
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      if (input.value.trim()) {
+        state.tasks.push({ id: Date.now().toString(), text: input.value.trim(), completed: false });
+        input.value = '';
+        saveState();
+      }
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      document.getElementById('taskProgress').innerText = `${state.tasks.filter(t => t.completed).length}/${state.tasks.length} tasks completed`;
+      if(!state.tasks.length) return list.innerHTML = '<p class="text-center text-white/30 py-8 text-sm font-medium">Koi task nahi hai. Upar apna pehla task add karein!</p>';
+
+      state.tasks.forEach(task => {
+        const div = document.createElement('div');
+        div.className = `flex items-center gap-3 p-4 rounded-2xl transition-all group border border-white/5 ${task.completed ? 'bg-emerald-500/10' : 'bg-black/20 hover:bg-white/5'}`;
+        div.innerHTML = `
+          <button onclick="state.tasks.find(t=>t.id==='${task.id}').completed = !${task.completed}; saveState();" class="w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-emerald-400 btn-press'}">
+            ${task.completed ? '<span class="text-white text-sm font-bold">✓</span>' : ''}
+          </button>
+          <span class="flex-1 font-medium transition-all ${task.completed ? 'text-white/30 line-through' : 'text-white'}">${task.text}</span>
+          <button onclick="state.tasks = state.tasks.filter(t=>t.id!=='${task.id}'); saveState();" class="opacity-0 group-hover:opacity-100 text-red-400/50 hover:text-red-400 transition-all p-2 font-bold">✕</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    // --- Health (Step Counter) ---
+    let isCountingSteps = false;
+    let lastAccel = { x: 0, y: 0, z: 0 };
+    let lastStepTime = 0;
+
+    function handleMotion(event) {
+      const acc = event.accelerationIncludingGravity;
+      if (!acc || acc.x === null) return;
+      const delta = Math.abs(acc.x - lastAccel.x) + Math.abs(acc.y - lastAccel.y) + Math.abs(acc.z - lastAccel.z);
+      const now = Date.now();
+      if (delta > 15 && now - lastStepTime > 400) {
+        lastStepTime = now; state.steps++; saveState();
+      }
+      lastAccel = { x: acc.x, y: acc.y, z: acc.z };
+    }
+
+    async function toggleStepCounter() {
+      if (isCountingSteps) {
+        window.removeEventListener('devicemotion', handleMotion);
+        isCountingSteps = false;
+        renderSteps();
+        return;
+      }
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+          const permissionState = await DeviceMotionEvent.requestPermission();
+          if (permissionState === 'granted') {
+            window.addEventListener('devicemotion', handleMotion);
+            isCountingSteps = true;
+          } else { alert('Permission denied.'); }
+        } catch(e) { alert('Permission error: ' + e.message); }
+      } else {
+        window.addEventListener('devicemotion', handleMotion);
+        isCountingSteps = true;
+      }
+      renderSteps();
+    }
+
+    function addSteps(num, reset=false) { reset ? state.steps=0 : state.steps+=num; saveState(); }
+
+    function renderSteps() {
+      document.getElementById('stepCount').innerText = state.steps.toLocaleString();
+      const btn = document.getElementById('btnToggleSteps');
+      btn.innerHTML = isCountingSteps ? '⏹ Stop Tracking' : '▶ Start Tracking';
+      btn.className = `py-3 rounded-xl font-bold transition-all btn-press border border-white/10 ${isCountingSteps ? 'bg-gradient-to-r from-red-500 to-pink-500 hover:shadow-lg shadow-red-500/30' : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:shadow-lg shadow-blue-500/30'} text-white`;
+      document.getElementById('stepStatus').innerText = isCountingSteps ? '🟢 Live tracking on...' : 'Tracking paused';
+    }
+
+    // --- Health (Focus Timer) ---
+    let focusInterval = null, focusRunning = false, focusTimeLeft = 0, initialFocusMins = 0;
+
+    function toggleFocus() {
+      const input = document.getElementById('focusInput');
+      if (focusRunning) {
+        clearInterval(focusInterval);
+        const minsCompleted = Math.round((initialFocusMins * 60 - focusTimeLeft) / 60);
+        if(minsCompleted > 0) { state.focusMinutes += minsCompleted; saveState(); }
+        focusRunning = false; focusTimeLeft = 0; input.disabled = false;
+      } else {
+        const m = parseInt(input.value);
+        if(m > 0) {
+          initialFocusMins = m; focusTimeLeft = m * 60; focusRunning = true; input.disabled = true;
+          focusInterval = setInterval(() => {
+            if(--focusTimeLeft <= 0) {
+              clearInterval(focusInterval); state.focusMinutes += initialFocusMins;
+              focusRunning = false; input.disabled = false; saveState();
+            }
+            renderFocus();
+          }, 1000);
+        }
+      }
+      renderFocus();
+    }
+
+    function renderFocus() {
+      document.getElementById('focusTotalText').innerText = `Today: ${state.focusMinutes} min focused`;
+      const display = document.getElementById('focusDisplay');
+      const btn = document.getElementById('btnFocus');
+      if (focusRunning) {
+        display.innerText = `${Math.floor(focusTimeLeft/60).toString().padStart(2,'0')}:${(focusTimeLeft%60).toString().padStart(2,'0')}`;
+        display.className = "text-6xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent tracking-wider drop-shadow-lg";
+        document.getElementById('focusSubtext').innerText = 'Focusing...';
+        btn.innerText = 'Stop';
+        btn.className = "px-8 py-3 rounded-xl font-bold bg-gradient-to-r from-red-500 to-pink-500 hover:shadow-lg shadow-red-500/30 transition-all text-white btn-press border border-white/10";
+      } else {
+        display.innerText = "00:00";
+        display.className = "text-6xl font-bold text-white/30 bg-clip-text tracking-wider";
+        document.getElementById('focusSubtext').innerText = 'Enter minutes to start';
+        btn.innerText = 'Start';
+        btn.className = "px-8 py-3 rounded-xl font-bold bg-gradient-to-r from-violet-500 to-purple-500 hover:shadow-lg shadow-purple-500/30 transition-all text-white btn-press border border-white/10";
+      }
+    }
+
+    // --- Food (Manual Meter + Pure AI Chat) ---
+    function addManualCals(cals) {
+        state.totalCalories += cals;
+        saveState();
+    }
+
+    function addCustomCals() {
+        const inp = document.getElementById('customCalInput');
+        const cals = parseInt(inp.value);
+        if(cals > 0) {
+            state.totalCalories += cals;
+            saveState();
+        }
+        inp.value = '';
+    }
+
+    function resetCals() {
+        state.totalCalories = 0;
+        saveState();
+    }
+
+    function clearChat() {
+        state.chatHistory = [];
+        saveState();
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if(!text) return;
+
+      if(!state.chatHistory) state.chatHistory = [];
+      
+      // Save User Message
+      state.chatHistory.push({ role: 'user', content: text });
+      input.value = '';
+      renderChat(); 
+      saveState();
+
+      const btn = document.getElementById('btnSendChat');
+      btn.innerHTML = '<span class="animate-spin text-lg block">⏳</span>'; 
+      btn.disabled = true;
+
+      try {
+        // Strict prompt to ensure AI never returns empty content
+        const messages = [
+            { 
+              role: 'system', 
+              content: `You are a friendly AI Dietitian for a Daily Tracker app. User will tell you what they ate or ask health questions. 
+                        Your ONLY job is to chat back naturally in short Hindi/Hinglish language. 
+                        Give them estimated calories for their food in normal text. 
+                        CRITICAL INSTRUCTION: You MUST ALWAYS reply with some text. NEVER send an empty message. Do NOT use JSON.`
+            },
+            ...state.chatHistory.map(m => ({ role: m.role, content: m.content }))
+        ];
+
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer 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',
+            'Content-Type': 'application/json',
+            'HTTP-Referer': window.location.href, 
+            'X-Title': 'Daily Tracker Pro' 
+          },
+          body: JSON.stringify({
+            model: 'stepfun/step-3.5-flash:free', 
+            messages: messages,
+            max_tokens: 300,
+            temperature: 0.7 
+          })
+        });
+
+        const data = await res.json();
+
+        if(res.ok) {
+          // Fallback handle for empty response from API
+          let aiReply = data.choices?.[0]?.message?.content;
+          if (!aiReply || aiReply.trim() === '') {
+              aiReply = "Maaf karna, mujhe theek se samajh nahi aaya. Kya aap wapas bata sakte hain?";
+          }
+          state.chatHistory.push({ role: 'assistant', content: aiReply });
+        } else {
+          const errorMsg = data.error ? data.error.message : 'API Error';
+          state.chatHistory.push({ role: 'assistant', content: `⚠️ Error: ${errorMsg}` });
+        }
+      } catch(e) { 
+          state.chatHistory.push({ role: 'assistant', content: `🔌 Network Error: Please check your internet.` });
+      }
+
+      btn.innerHTML = '➤'; 
+      btn.disabled = false;
+      renderAll(); 
+      saveState();
+    }
+
+    function renderChat() {
+      document.getElementById('totalCaloriesDisplay').innerText = state.totalCalories;
+      
+      const box = document.getElementById('chatMessages');
+      if(!box) return;
+      box.innerHTML = '';
+      
+      if(!state.chatHistory || state.chatHistory.length === 0) {
+          box.innerHTML = '<div class="text-center text-white/30 my-auto text-sm font-medium">Batao aaj kya khaya?<br>Main calories bataunga, aap upar meter me add kar dena! 🤖</div>';
+          return;
+      }
+
+      state.chatHistory.forEach(msg => {
+          const div = document.createElement('div');
+          const isUser = msg.role === 'user';
+          div.className = `max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-lg ${isUser ? 'bg-gradient-to-r from-rose-500 to-red-600 self-end rounded-br-sm text-white font-medium' : 'bg-black/30 self-start rounded-bl-sm border border-white/5 text-rose-50'}`;
+          div.innerText = msg.content;
+          box.appendChild(div);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // --- Analysis & History ---
+    function renderAnalysis() {
+      document.getElementById('sumWake').innerText = state.wakeUpTime ? `${state.wakeUpTime}:00` : '--';
+      document.getElementById('sumTasks').innerText = `${state.tasks.filter(t=>t.completed).length}/${state.tasks.length}`;
+      document.getElementById('sumSteps').innerText = state.steps.toLocaleString();
+      document.getElementById('sumFocus').innerText = `${state.focusMinutes}m`;
+      document.getElementById('sumCals').innerText = state.totalCalories;
+
+      const history = JSON.parse(localStorage.getItem('dailyTracker_history') || '{}');
+      const last7 = [];
+      for(let i=6; i>=0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        last7.push({ day: d.toLocaleDateString('en-US',{weekday:'short'}), data: history[d.toISOString().split('T')[0]] });
+      }
+
+      const renderBars = (max, valFn, colors) => last7.map(d => `<div class="flex-1 flex flex-col items-center gap-2"><div class="w-full ${colors} rounded-t-lg transition-all duration-700 min-h-[4px] shadow-lg" style="height:${((valFn(d.data)/max)*100)||0}%"></div><span class="text-white/40 text-[10px] font-bold uppercase">${d.day}</span></div>`).join('');
+
+      document.getElementById('chartsContainer').innerHTML = `
+        <div class="bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner"><p class="text-blue-300/80 text-xs font-bold uppercase tracking-widest mb-4">👟 Steps Trend</p><div class="flex items-end gap-3 h-28">${renderBars(Math.max(...last7.map(d=>d.data?.steps||0),1), d=>d?.steps||0, 'bg-gradient-to-t from-blue-600 to-cyan-400')}</div></div>
+        <div class="bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner"><p class="text-rose-300/80 text-xs font-bold uppercase tracking-widest mb-4">🍎 Calories Trend</p><div class="flex items-end gap-3 h-28">${renderBars(Math.max(...last7.map(d=>d.data?.totalCalories||0),1), d=>d?.totalCalories||0, 'bg-gradient-to-t from-rose-600 to-red-400')}</div></div>
+        <div class="bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner"><p class="text-violet-300/80 text-xs font-bold uppercase tracking-widest mb-4">🎯 Focus (min)</p><div class="flex items-end gap-3 h-28">${renderBars(Math.max(...last7.map(d=>d.data?.focusMinutes||0),1), d=>d?.focusMinutes||0, 'bg-gradient-to-t from-violet-600 to-purple-400')}</div></div>
+      `;
+    }
+
+    function toggleHistoryModal(show) {
+      const m = document.getElementById('historyModal');
+      if(show) { m.classList.remove('hidden'); renderHistoryList(); } else m.classList.add('hidden');
+    }
+
+    function renderHistoryList() {
+      const history = JSON.parse(localStorage.getItem('dailyTracker_history') || '{}');
+      const list = document.getElementById('historyList'); list.innerHTML = '';
+      for(let i=0; i<30; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const data = history[d.toISOString().split('T')[0]];
+        const displayDate = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+        
+        if(data) {
+          list.innerHTML += `<div class="bg-black/30 rounded-2xl p-5 hover:bg-black/50 transition-all border border-white/5 shadow-inner"><div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2"><span class="font-bold text-indigo-100">${displayDate}</span><span class="text-emerald-400 text-[10px] font-black uppercase tracking-widest bg-emerald-400/10 px-2 py-1 rounded-lg">✓ Tracked</span></div><div class="grid grid-cols-4 gap-2 text-center"><div><p class="text-amber-400 text-sm font-black">${data.wakeUpTime||'--'}</p><p class="text-white/30 text-[9px] font-bold uppercase mt-1">Wake</p></div><div><p class="text-blue-400 text-sm font-black">${data.steps}</p><p class="text-white/30 text-[9px] font-bold uppercase mt-1">Steps</p></div><div><p class="text-rose-400 text-sm font-black">${data.totalCalories}</p><p class="text-white/30 text-[9px] font-bold uppercase mt-1">Cal</p></div><div><p class="text-violet-400 text-sm font-black">${data.focusMinutes}m</p><p class="text-white/30 text-[9px] font-bold uppercase mt-1">Focus</p></div></div></div>`;
+        } else {
+          list.innerHTML += `<div class="bg-white/5 rounded-2xl p-5 opacity-40"><div class="flex items-center justify-between"><span class="font-bold">${displayDate}</span><span class="text-white/30 text-xs font-medium">No data</span></div></div>`;
+        }
+      }
+    }
+
+    function renderAll() { renderWakeUp(); renderTasks(); renderSteps(); renderFocus(); renderChat(); renderAnalysis(); }
+
+    // Init App
+    loadState();
+  </script>
+</body>
+</html>
